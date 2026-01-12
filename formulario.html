@@ -16,9 +16,12 @@
 
 <form id="form">
 
-<!-- DATOS DEL VISITADOR -->
-<label>Nombre visitador</label>
-<input id="visitador" required>
+<!-- IDENTIFICACIÓN VISITADOR -->
+<label>Visitador ID</label>
+<input id="visitador_id" disabled>
+
+<label>Nombre visitador (informativo)</label>
+<input id="visitador">
 
 <label>Email visitador</label>
 <input id="email" type="email" placeholder="nombre@empresa.com" required>
@@ -49,6 +52,17 @@
 
 <script>
 const WEBHOOK_URL = "https://n8n.housfy.com/webhook-test/servicios";
+
+// 🔹 Leer visitador_id desde la URL
+const params = new URLSearchParams(window.location.search);
+const visitador_id = params.get("visitador_id");
+
+if (!visitador_id) {
+  alert("Error: enlace no válido. Falta el identificador del visitador.");
+}
+
+// Mostrar ID en el formulario (solo lectura)
+document.getElementById("visitador_id").value = visitador_id;
 
 function generarServicios() {
   const n = Number(document.getElementById("cantidadServicios").value);
@@ -104,7 +118,7 @@ function toggleCantidad(i) {
 document.getElementById("form").addEventListener("submit", async e => {
   e.preventDefault();
 
-  const visitador = document.getElementById("visitador").value;
+  const visitador_nombre = document.getElementById("visitador").value;
   const email = document.getElementById("email").value;
   const nombre_fiscal = document.getElementById("nombre_fiscal").value;
   const cif = document.getElementById("cif").value;
@@ -116,7 +130,8 @@ document.getElementById("form").addEventListener("submit", async e => {
 
   for (let i = 1; i <= n; i++) {
     servicios.push({
-      visitador,
+      visitador_id,
+      visitador_nombre,
       email,
       nombre_fiscal,
       cif,
@@ -135,7 +150,10 @@ document.getElementById("form").addEventListener("submit", async e => {
   await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ servicios })
+    body: JSON.stringify({
+      visitador_id,
+      servicios
+    })
   });
 
   alert("Servicios enviados correctamente");
