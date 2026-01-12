@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro servicios</title>
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: 40px auto; }
+    .card { border: 1px solid #ccc; padding: 16px; margin-bottom: 16px; border-radius: 8px; }
+    label { font-weight: bold; display:block; margin-top: 8px; }
+    input, select { width: 100%; padding: 6px; }
+  </style>
+</head>
+<body>
+
+<h2>Registro de servicios</h2>
+
+<form id="form">
+
+<!-- DATOS DEL VISITADOR -->
+<label>Nombre visitador</label>
+<input id="visitador" required>
+
+<label>Email visitador</label>
+<input id="email" type="email" placeholder="nombre@empresa.com" required>
+
+<label>Nombre fiscal</label>
+<input id="nombre_fiscal" required>
+
+<label>CIF / NIF</label>
+<input id="cif" required>
+
+<label>Dirección fiscal</label>
+<input id="direccion_fiscal" required>
+
+<label>Ciudad</label>
+<input id="ciudad" required>
+
+<label>Cantidad de servicios</label>
+<input id="cantidadServicios" type="number" min="1" required>
+
+<br><br>
+<button type="button" onclick="generarServicios()">Continuar</button>
+
+<div id="servicios"></div>
+
+<br>
+<button type="submit">Enviar</button>
+</form>
+
+<script>
+const WEBHOOK_URL = "https://n8n.housfy.com/webhook-test/servicios";
+
+function generarServicios() {
+  const n = Number(document.getElementById("cantidadServicios").value);
+  const cont = document.getElementById("servicios");
+  cont.innerHTML = "";
+
+  for (let i = 1; i <= n; i++) {
+    cont.innerHTML += `
+      <div class="card">
+        <h3>Servicio ${i}</h3>
+
+        <label>Property ID</label>
+        <input name="property_${i}" required>
+
+        <label>Mes</label>
+        <input type="number" name="mes_${i}" min="1" max="12" required>
+
+        <label>Año</label>
+        <input type="number" name="anio_${i}" required>
+
+        <label>Dirección propiedad</label>
+        <input name="direccion_${i}" required>
+
+        <label>Tipo de servicio</label>
+        <select name="tipo_${i}" onchange="toggleCantidad(${i})" required>
+          <option value="">Seleccionar</option>
+          <option>Gestión llaves</option>
+          <option>Kilometraje</option>
+          <option>Visita - alquiler (ganado)</option>
+          <option>Visita - real estate (ganado)</option>
+          <option>Check-in</option>
+          <option>Check-out</option>
+        </select>
+
+        <div id="cantidad_div_${i}" style="display:none;">
+          <label>Cantidad (km)</label>
+          <input type="number" name="cantidad_${i}">
+        </div>
+
+        <label>Total (€)</label>
+        <input type="number" step="0.01" name="total_${i}" required>
+      </div>
+    `;
+  }
+}
+
+function toggleCantidad(i) {
+  const tipo = document.querySelector(`[name="tipo_${i}"]`).value;
+  document.getElementById(`cantidad_div_${i}`).style.display =
+    tipo === "Kilometraje" ? "block" : "none";
+}
+
+document.getElementById("form").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const visitador = document.getElementById("visitador").value;
+  const email = document.getElementById("email").value;
+  const nombre_fiscal = document.getElementById("nombre_fiscal").value;
+  const cif = document.getElementById("cif").value;
+  const direccion_fiscal = document.getElementById("direccion_fiscal").value;
+  const ciudad = document.getElementById("ciudad").value;
+
+  const n = Number(document.getElementById("cantidadServicios").value);
+  const servicios = [];
+
+  for (let i = 1; i <= n; i++) {
+    servicios.push({
+      visitador,
+      email,
+      nombre_fiscal,
+      cif,
+      direccion_fiscal,
+      ciudad,
+      property_id: document.querySelector(`[name="property_${i}"]`).value,
+      mes: document.querySelector(`[name="mes_${i}"]`).value,
+      anio: document.querySelector(`[name="anio_${i}"]`).value,
+      direccion: document.querySelector(`[name="direccion_${i}"]`).value,
+      tipo_servicio: document.querySelector(`[name="tipo_${i}"]`).value,
+      cantidad: document.querySelector(`[name="cantidad_${i}"]`)?.value || null,
+      total: document.querySelector(`[name="total_${i}"]`).value
+    });
+  }
+
+  await fetch(WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ servicios })
+  });
+
+  alert("Servicios enviados correctamente");
+});
+</script>
+
+</body>
+</html>
